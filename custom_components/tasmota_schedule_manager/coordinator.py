@@ -1,7 +1,6 @@
 """Tasmota timer state and staged edits."""
 from __future__ import annotations
 
-from copy import deepcopy
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -56,13 +55,16 @@ class TasmotaCoordinator:
             raise HomeAssistantError("Unsupported Tasmota timer field")
         result = await self.mqtt.command(f"Timer{number}", values)
         value = result.get(f"Timer{number}")
-        if isinstance(value, dict):
-            self.timers[number] = {"id": number, **value}
+        if not isinstance(value, dict):
+            raise HomeAssistantError(f"Tasmota did not confirm Timer{number}")
+        self.timers[number] = {"id": number, **value}
         return self.view()
 
     async def clear_timer(self, number: int) -> dict:
         if number not in range(1, MAX_TIMERS + 1):
             raise HomeAssistantError("Timer number must be between 1 and 16")
-        await self.mqtt.command(f"Timer{number}", 0)
+        result = await self.mqtt.command(f"Timer{number}", 0)
+        if f"Timer{number}" not in result:
+            raise HomeAssistantError(f"Tasmota did not confirm clearing Timer{number}")
         self.timers.pop(number, None)
         return self.view()

@@ -15,16 +15,16 @@ class TasmotaScheduleCard extends HTMLElement {
   }
   el(tag, props={}, children=[]) { const e=document.createElement(tag); Object.assign(e,props); children.forEach(c=>e.append(c)); return e; }
   async selectEntry(entry) { this.entry=entry; this.data=null; this.render(); await this.load(); }
-  async refresh() { this.data=await this.call('refresh'); this.render(); }
-  async saveTimer(id, values) { this.data=await this.call('set_timer',{timer:id,values}); this.render(); }
+  async refresh() { try { this.data=await this.call('refresh'); this.error=null; } catch(e) { this.error=e.message; } this.render(); }
+  async saveTimer(id, values) { try { this.data=await this.call('set_timer',{timer:id,values}); this.error=null; } catch(e) { this.error=e.message; } this.render(); }
   async createTimer() {
     const used=new Set((this.data?.timers||[]).map(timer=>timer.id));
     const id=[...Array(16)].map((_,index)=>index+1).find(number=>!used.has(number));
     if(!id) return;
-    this.data=await this.call('set_timer',{timer:id,values:{Enable:0,Mode:0,Time:'00:00',Window:0,Days:'SMTWTFS',Repeat:1,Output:1,Action:0}});
+    try { this.data=await this.call('set_timer',{timer:id,values:{Enable:0,Mode:0,Time:'00:00',Window:0,Days:'SMTWTFS',Repeat:1,Output:1,Action:0}}); this.error=null; } catch(e) { this.error=e.message; }
     this.render();
   }
-  async clearTimer(id) { if(confirm(`Clear Timer ${id}?`)) { this.data=await this.call('clear_timer',{timer:id}); this.render(); } }
+  async clearTimer(id) { if(confirm(`Clear Timer ${id}?`)) { try { this.data=await this.call('clear_timer',{timer:id}); this.error=null; } catch(e) { this.error=e.message; } this.render(); } }
   render() {
     const s=this.shadowRoot; if(!s) return; s.innerHTML=`<style>
       :host{display:block}ha-card{padding:16px}header{display:flex;gap:8px;align-items:center;margin-bottom:12px}select,input{padding:7px;border:1px solid var(--divider-color);border-radius:4px;background:var(--card-background-color);color:var(--primary-text-color)}button{padding:7px 10px;border:0;border-radius:4px;background:var(--primary-color);color:white;cursor:pointer}.timer{border-top:1px solid var(--divider-color);padding:10px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:7px}.muted{color:var(--secondary-text-color)}.error{color:var(--error-color)}</style>`;

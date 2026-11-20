@@ -4,6 +4,8 @@ Home Assistant custom integration and Lovelace card for managing native timers o
 
 The device remains configured through Home Assistant's Tasmota/MQTT integration. This project adds a management layer that reads and writes Tasmota timer slots over MQTT.
 
+This architecture is supported: Home Assistant's official Tasmota integration controls Tasmota devices over MQTT, while this custom integration sends the native `Timer1` through `Timer16` commands through the same broker. It does not replace or reconfigure the official Tasmota integration.
+
 ## Features
 
 - Configure one integration entry per Tasmota device.
@@ -87,6 +89,10 @@ For timer 1, the integration uses `cmnd/<topic>/Timer1` and reads the response f
 ```
 
 Tasmota executes schedules locally. Sunrise and sunset timers require latitude, longitude, and correct device time/NTP settings on the Tasmota device.
+
+The implementation assumes Tasmota's standard `FullTopic` format (`%prefix%/%topic%/`) and the normal `RESULT` response topic. The official Tasmota integration supports custom full topics, but this manager currently expects the standard format; keep the device's default FullTopic unless custom-topic support is added.
+
+References: [Home Assistant Tasmota integration](https://www.home-assistant.io/integrations/tasmota/), [Tasmota MQTT documentation](https://tasmota.github.io/docs/MQTT/), and [Tasmota Timers](https://tasmota.github.io/docs/Timers/).
 
 ## Development
 

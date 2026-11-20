@@ -13,7 +13,8 @@ class TasmotaMqtt:
     def __init__(self, hass: HomeAssistant, topic: str) -> None:
         self.hass = hass
         self.topic = topic
-        self._waiters: list[asyncio.Future[dict]] = []
+        self._waiters: dict[str, asyncio.Future[dict]] = {}
+        self._lock = asyncio.Lock()
         self._unsubscribe: Callable[[], None] | None = None
 
     async def start(self) -> None:
@@ -33,19 +34,21 @@ class TasmotaMqtt:
             return
         if not isinstance(value, dict):
             return
-        for waiter in tuple(self._waiters):
-            if not waiter.done():
+        for key, waiter in tuple(self._waiters.items()):
+            if key in value and not waiter.done():
                 waiter.set_result(value)
-        self._waiters.clear()
+                self._waiters.pop(key, None)
 
     async def command(self, command: str, payload: object = "", timeout: float = 5) -> dict:
-        waiter: asyncio.Future[dict] = asyncio.get_running_loop().create_future()
-        self._waiters.append(waiter)
-        if isinstance(payload, (dict, list)):
-            payload = json.dumps(payload, separators=(",", ":"))
-        await mqtt.async_publish(self.hass, f"cmnd/{self.topic}/{command}", str(payload), qos=1)
-        try:
-            return await asyncio.wait_for(waiter, timeout)
-        finally:
-            if waiter in self._waiters:
-                self._waiters.remove(waiter)
+        async with self._lock:
+            waiter: asyncio.Future[dict] = asyncio.get_running_loop().create_future()
+            self._waiters[command] = waiter
+            if isinstance(payload, (dict, list)):
+                payload = json.dumps(payload, separators=(",", ":"))
+            try:
+                await mqtt.async_publish(
+                    self.hass, f"cmnd/{self.topic}/{command}", str(payload), qos=1
+                )
+                return await asyncio.wait_for(waiter, timeout)
+            finally:
+                self._waiters.pop(command, None)

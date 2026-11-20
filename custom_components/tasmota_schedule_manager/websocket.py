@@ -25,6 +25,7 @@ async def _handler(hass: HomeAssistant, connection, msg: dict) -> None:
         connection.send_result(msg["id"], {"entries": [
             {"entry_id": entry_id, "title": coordinator.entry.title, "topic": coordinator.topic}
             for entry_id, coordinator in hass.data[DOMAIN].items()
+            if hasattr(coordinator, "entry")
         ]})
         return
     coordinator = hass.data[DOMAIN].get(msg["entry_id"])
