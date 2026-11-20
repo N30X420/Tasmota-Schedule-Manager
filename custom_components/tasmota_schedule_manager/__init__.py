@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
@@ -13,9 +14,13 @@ from .websocket import async_register_websocket
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
-    hass.http.register_static_path(
-        f"/{DOMAIN}", str(Path(__file__).parent / "www"), cache_headers=False
-    )
+    await hass.http.async_register_static_paths([
+        StaticPathConfig(
+            f"/{DOMAIN}/tasmota-schedule-card.js",
+            str(Path(__file__).parent / "www" / "tasmota-schedule-card.js"),
+            cache_headers=False,
+        )
+    ])
     async_register_websocket(hass)
     return True
 
