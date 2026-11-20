@@ -20,11 +20,11 @@ class TasmotaCoordinator:
         self.error: str | None = None
 
     async def async_start(self) -> None:
-        await self.mqtt.start()
         try:
+            await self.mqtt.start()
             await self.async_refresh()
         except Exception as err:
-            # Keep the entry visible so the card can retry after MQTT becomes available.
+            # Keep the entry visible so the card can report/retry after MQTT becomes available.
             self.error = str(err)
 
     async def async_stop(self) -> None:
