@@ -2,12 +2,12 @@
 
 Home Assistant custom integration and Lovelace card for managing native timers on Sonoff devices running Tasmota.
 
-The device remains configured through Home Assistant's MQTT integration. This project adds a management layer that reads and writes Tasmota timer slots over MQTT.
+The device remains configured through Home Assistant's Tasmota/MQTT integration. This project adds a management layer that reads and writes Tasmota timer slots over MQTT.
 
 ## Features
 
 - Configure one integration entry per Tasmota device.
-- Select the existing MQTT device during setup and confirm its Tasmota topic.
+- Select the existing Tasmota device during setup and confirm its MQTT topic.
 - Manage all 16 Tasmota timer slots.
 - Read from `stat/<topic>/RESULT` and write to `cmnd/<topic>/Timer1` through `Timer16`.
 - Support fixed time, sunrise/sunset mode, weekday masks, repeat, output, action, and random windows.
@@ -28,9 +28,27 @@ Copy `custom_components/tasmota_schedule_manager` into Home Assistant's `custom_
 
 ## Configure a device
 
-The Tasmota device must already work through Home Assistant's MQTT integration. During setup, select the existing MQTT device when possible, enter the Tasmota MQTT topic exactly as configured (for example `sonoff_livingroom`), and give the entry a friendly name.
+The Tasmota device must already be visible under Home Assistant's **Tasmota** integration. During setup, select that existing Tasmota device, enter its MQTT topic exactly as configured (for example `sonoff_livingroom`), and give the entry a friendly name.
 
-The device selector identifies the MQTT device, while the topic is confirmed separately because the device registry does not expose one canonical Tasmota command topic for every MQTT discovery layout.
+The device selector identifies the Tasmota device, while the topic is confirmed separately because the device registry does not expose one canonical Tasmota command topic for every MQTT discovery layout.
+
+### Find the MQTT topic
+
+Open the Tasmota device's own web interface and go to **Configuration → Configure MQTT**. Copy the value in the **Topic** field into the integration's **Tasmota MQTT topic** field.
+
+For example, if Tasmota shows:
+
+```text
+Topic: sonoff_livingroom
+```
+
+enter only:
+
+```text
+sonoff_livingroom
+```
+
+Do not enter `cmnd/`, `stat/`, `/RESULT`, or `Timer1`. The integration builds those MQTT paths itself. With Tasmota's default settings, the Topic field may show a template such as `tasmota_%06X`, while the text in parentheses shows this device's expanded topic. Use the expanded value—for example `tasmota_A966EA`—not the `%06X` template. The official Tasmota MQTT documentation describes the Topic and FullTopic settings in detail: https://tasmota.github.io/docs/MQTT/.
 
 ## Lovelace card
 

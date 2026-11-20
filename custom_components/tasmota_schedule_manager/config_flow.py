@@ -1,4 +1,4 @@
-"""Configuration flow for an existing MQTT-connected Tasmota device."""
+"""Configuration flow for an existing Tasmota device."""
 from __future__ import annotations
 
 import re
@@ -35,7 +35,7 @@ class TasmotaScheduleFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("name", default=""): str,
                     vol.Required("topic"): str,
                     vol.Optional("device"): selector.DeviceSelector(
-                        selector.DeviceSelectorConfig(integration="mqtt")
+                        selector.DeviceSelectorConfig(integration="tasmota")
                     ),
                 }
             ),
