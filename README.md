@@ -62,9 +62,16 @@ url: /tasmota_schedule_manager/tasmota-schedule-card.js
 type: module
 ```
 
+For the Dutch card, add the second module instead:
+
+```yaml
+url: /tasmota_schedule_manager/tasmota-schedule-card-nl.js
+type: module
+```
+
 After installing or updating the integration, restart Home Assistant before adding the resource. If the card still says that the custom element is not found, open the resource URL in a browser and confirm that it returns JavaScript rather than a 404 page, then hard-refresh the Home Assistant dashboard.
 
-The `/tasmota_schedule_manager/...` URL is served by this integration and is available only after Home Assistant has successfully loaded at least one Tasmota Schedule Manager config entry. The alternative `/local/tasmota-schedule-card.js` URL is served globally from `/config/www` and does not depend on this integration starting successfully.
+The `/tasmota_schedule_manager/...` URLs are served by this integration after Home Assistant loads it. The alternative `/local/tasmota-schedule-card.js` URL is served globally from `/config/www` and does not depend on this integration starting successfully.
 
 Then add a manual card:
 
@@ -72,6 +79,15 @@ Then add a manual card:
 type: custom:tasmota-schedule-card
 title: Tasmota schedules
 ```
+
+Or use the Dutch version:
+
+```yaml
+type: custom:tasmota-schedule-card-nl
+title: Tasmota-schema's
+```
+
+The card shows a confirmation message after a timer is saved successfully. The action (off, on, toggle, or rule/blink) is available directly in each timer row; less frequently used timer options remain under **Advanced options**.
 
 When several devices are configured, the card displays a selector. To pin a card to one device, add its config-entry ID:
 
@@ -99,7 +115,7 @@ References: [Home Assistant Tasmota integration](https://www.home-assistant.io/i
 ```text
 custom_components/tasmota_schedule_manager/
   __init__.py  config_flow.py  coordinator.py  manifest.json
-  mqtt.py  websocket.py  www/tasmota-schedule-card.js
+  mqtt.py  websocket.py  www/tasmota-schedule-card.js www/tasmota-schedule-card-nl.js
 hacs.json  LICENSE  README.md
 ```
 

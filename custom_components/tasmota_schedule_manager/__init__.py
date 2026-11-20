@@ -20,10 +20,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(
-                f"/{DOMAIN}/tasmota-schedule-card.js",
-                str(Path(__file__).parent / "www" / "tasmota-schedule-card.js"),
+                f"/{DOMAIN}/{filename}",
+                str(Path(__file__).parent / "www" / filename),
                 cache_headers=False,
             )
+            for filename in ("tasmota-schedule-card.js", "tasmota-schedule-card-nl.js")
         ]
     )
     async_register_websocket(hass)
