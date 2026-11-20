@@ -1,0 +1,1 @@
+{"config":{"step":{"user":{"title":"Add Tasmota device","description":"Select the existing MQTT device and enter its Tasmota MQTT topic.","data":{"name":"Name","topic":"Tasmota MQTT topic","device":"Existing MQTT device"}}},"error":{"invalid_topic":"Enter only the device topic, for example sonoff_livingroom."}}}

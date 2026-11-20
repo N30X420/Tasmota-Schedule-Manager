@@ -1,0 +1,13 @@
+{
+  "domain": "tasmota_schedule_manager",
+  "name": "Tasmota Schedule Manager",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["mqtt"],
+  "documentation": "https://github.com/N30X420/Tasmota-Schedule-Manager",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/N30X420/Tasmota-Schedule-Manager/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
