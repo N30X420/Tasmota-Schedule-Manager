@@ -9,7 +9,10 @@ from .const import DOMAIN
 
 
 def async_register_websocket(hass: HomeAssistant) -> None:
+    if hass.data.setdefault(DOMAIN, {}).get("_websocket_registered"):
+        return
     websocket_api.async_register_command(hass, _handler)
+    hass.data[DOMAIN]["_websocket_registered"] = True
 
 
 @websocket_api.websocket_command({

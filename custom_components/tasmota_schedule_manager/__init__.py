@@ -31,6 +31,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    # Config entries can be restored without re-running the integration setup
+    # path in some reload scenarios; make the card API available here too.
+    async_register_websocket(hass)
     coordinator = TasmotaCoordinator(hass, entry)
     # Register before the first MQTT read so the card can report/retry a device
     # even when the broker or device is temporarily unavailable at startup.
