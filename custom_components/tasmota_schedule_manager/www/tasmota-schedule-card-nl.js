@@ -8,8 +8,10 @@ const DUTCH = {
   clock: 'Kloktijd', sunrise: 'Verschuiving zonsopkomst', sunset: 'Verschuiving zonsondergang', repeat: 'Herhalen', advanced: 'Geavanceerde opties',
   randomWindow: 'Willekeurig venster (minuten)', repeatBehavior: 'Herhaalgedrag', repeating: 'Herhalen', oneTime: 'Eenmalig',
   output: 'Uitgang / relais', action: 'Actie', off: 'UITSCHAKELEN', on: 'INSCHAKELEN', toggle: 'OMSCHAKELEN', rule: 'REGEL / KNIPPEREN',
+  enableTimers: 'Timers inschakelen',
   save: 'Timer opslaan', clear: 'Timer wissen', clearConfirm: 'Timer {id} wissen?', saved: 'Timer {id} is succesvol opgeslagen.',
   cleared: 'Timer {id} is succesvol gewist.', sun: 'Zo', mon: 'Ma', tue: 'Di', wed: 'Wo', thu: 'Do', fri: 'Vr', sat: 'Za',
+  timersEnabled: 'Timerfunctie succesvol ingeschakeld.', timersDisabled: 'Timerfunctie succesvol uitgeschakeld.',
   mqttTopic: 'MQTT-topic', notLoaded: ' — niet geladen', timeFor: 'Tijd voor timer {id}', modeFor: 'Modus voor timer {id}',
 };
 

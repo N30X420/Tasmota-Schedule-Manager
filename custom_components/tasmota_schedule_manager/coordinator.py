@@ -15,6 +15,7 @@ class TasmotaCoordinator:
         self.topic = entry.data["topic"]
         self.mqtt = TasmotaMqtt(hass, self.topic)
         self.timers: dict[int, dict] = {}
+        self.timers_enabled: bool | None = None
         self.loaded = False
         self.error: str | None = None
 
@@ -31,6 +32,14 @@ class TasmotaCoordinator:
 
     async def async_refresh(self) -> dict:
         timers = {}
+        try:
+            result = await self.mqtt.command("Timers")
+            value = result.get("Timers")
+            if value is not None:
+                self.timers_enabled = bool(int(value))
+        except Exception:
+            # Keep timer reads usable on firmware builds without the global setting.
+            self.timers_enabled = None
         for number in range(1, MAX_TIMERS + 1):
             result = await self.mqtt.command(f"Timer{number}")
             value = result.get(f"Timer{number}")
@@ -44,8 +53,17 @@ class TasmotaCoordinator:
     def view(self) -> dict:
         return {"entry_id": self.entry.entry_id, "title": self.entry.title,
                 "topic": self.topic, "loaded": self.loaded,
+                "timers_enabled": self.timers_enabled,
                 "error": self.error,
                 "timers": [self.timers[n] for n in sorted(self.timers)]}
+
+    async def set_timers_enabled(self, enabled: bool) -> dict:
+        result = await self.mqtt.command("Timers", 1 if enabled else 0)
+        value = result.get("Timers")
+        if value is None:
+            raise HomeAssistantError("Tasmota did not confirm the global timer setting")
+        self.timers_enabled = bool(int(value))
+        return self.view()
 
     async def set_timer(self, number: int, values: dict) -> dict:
         if number not in range(1, MAX_TIMERS + 1):

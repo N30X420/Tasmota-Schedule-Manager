@@ -13,6 +13,7 @@ This architecture is supported: Home Assistant's official Tasmota integration co
 - Manage all 16 Tasmota timer slots.
 - Read from `stat/<topic>/RESULT` and write to `cmnd/<topic>/Timer1` through `Timer16`.
 - Support fixed time, sunrise/sunset mode, weekday masks, repeat, output, action, and random windows.
+- Read and control Tasmota's global **Timers** setting (the **Enable Timers** checkbox in the Tasmota web UI).
 - Include a Lovelace card with a device selector when multiple devices are configured.
 
 ## Installation
@@ -104,7 +105,7 @@ For timer 1, the integration uses `cmnd/<topic>/Timer1` and reads the response f
 {"Enable":1,"Mode":0,"Time":"07:30","Window":0,"Days":"SMTWTFS","Repeat":1,"Output":1,"Action":1}
 ```
 
-Tasmota executes schedules locally. Sunrise and sunset timers require latitude, longitude, and correct device time/NTP settings on the Tasmota device.
+Tasmota executes schedules locally. The global `Timers` setting must be `1` for enabled timer slots to run. The card exposes this as **Enable all timers**. Sunrise and sunset timers require latitude, longitude, and correct device time/NTP settings on the Tasmota device.
 
 The implementation assumes Tasmota's standard `FullTopic` format (`%prefix%/%topic%/`) and the normal `RESULT` response topic. The official Tasmota integration supports custom full topics, but this manager currently expects the standard format; keep the device's default FullTopic unless custom-topic support is added.
 

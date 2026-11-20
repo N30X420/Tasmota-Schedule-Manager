@@ -6,8 +6,10 @@ const ENGLISH = {
   clock: 'Clock time', sunrise: 'Sunrise offset', sunset: 'Sunset offset', repeat: 'Repeat', advanced: 'Advanced options',
   randomWindow: 'Random window (minutes)', repeatBehavior: 'Repeat behavior', repeating: 'Repeating', oneTime: 'One time',
   output: 'Output / relay', action: 'Action', off: 'Turn OFF', on: 'Turn ON', toggle: 'TOGGLE', rule: 'RULE / BLINK',
+  enableTimers: 'Enable timers',
   save: 'Save timer', clear: 'Clear timer', clearConfirm: 'Clear Timer {id}?', saved: 'Timer {id} saved successfully.',
   cleared: 'Timer {id} cleared successfully.', created: 'Timer {id} created successfully.',
+  timersEnabled: 'Timer function enabled successfully.', timersDisabled: 'Timer function disabled successfully.',
   sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat',
   mqttTopic: 'MQTT topic', notLoaded: ' — not loaded', timeFor: 'Time for Timer {id}', modeFor: 'Mode for Timer {id}',
 };
@@ -124,6 +126,17 @@ export class TasmotaScheduleCard extends HTMLElement {
       this.data = await this.call('clear_timer', {timer: id});
       this.error = null;
       this.notice = {text: this._t('cleared', {id}), kind: 'success'};
+    } catch (error) {
+      this.error = error?.message || String(error);
+    }
+    this.render();
+  }
+
+  async setTimersEnabled(enabled) {
+    try {
+      this.data = await this.call('set_timers_enabled', {enabled});
+      this.error = null;
+      this.notice = {text: enabled ? this._t('timersEnabled') : this._t('timersDisabled'), kind: 'success'};
     } catch (error) {
       this.error = error?.message || String(error);
     }
@@ -272,7 +285,11 @@ export class TasmotaScheduleCard extends HTMLElement {
     if (this.data.error) card.append(this.el('div', {className: 'error', text: `${this._t('readError')}: ${this.data.error}`}));
     card.append(this.el('div', {className: 'toolbar'},
       this.el('button', {text: this._t('refresh'), type: 'button', onclick: () => this.refresh()}),
-      this.el('button', {className: 'primary', text: this._t('newTimer'), type: 'button', onclick: () => this.createTimer()})));
+      this.el('button', {className: 'primary', text: this._t('newTimer'), type: 'button', onclick: () => this.createTimer()}),
+      this.el('label', {className: 'global-timers'},
+        this.el('input', {type: 'checkbox', checked: this.data.timers_enabled === true,
+          disabled: this.data.timers_enabled === null, onchange: event => this.setTimersEnabled(event.target.checked)}),
+        this.el('span', {text: this._t('enableTimers')}))));
     card.append(this.el('div', {className: 'muted topic', text: `${this._t('mqttTopic')}: ${this.data.topic}`}));
     if (!this.data.timers.length) card.append(this.el('p', {className: 'muted', text: this._t('noTimers')}));
     this.data.timers.forEach(timer => card.append(this._timerRow(timer)));

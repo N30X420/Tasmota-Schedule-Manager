@@ -11,7 +11,7 @@ from .const import DOMAIN
 def async_register_websocket(hass: HomeAssistant) -> None:
     if hass.data.setdefault(DOMAIN, {}).get("_websocket_registered"):
         return
-    for handler in (_entries, _list, _refresh, _set_timer, _clear_timer):
+    for handler in (_entries, _list, _refresh, _set_timer, _clear_timer, _set_timers_enabled):
         websocket_api.async_register_command(hass, handler)
     hass.data[DOMAIN]["_websocket_registered"] = True
 
@@ -75,6 +75,17 @@ async def _clear_timer(hass: HomeAssistant, connection, msg: dict) -> None:
     await _device_command(hass, connection, msg, "clear_timer")
 
 
+@websocket_api.websocket_command({
+    vol.Required("type"): f"{DOMAIN}/set_timers_enabled",
+    vol.Required("entry_id"): str,
+    vol.Required("enabled"): bool,
+})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _set_timers_enabled(hass: HomeAssistant, connection, msg: dict) -> None:
+    await _device_command(hass, connection, msg, "set_timers_enabled")
+
+
 async def _device_command(hass: HomeAssistant, connection, msg: dict, action: str) -> None:
     coordinator = hass.data[DOMAIN].get(msg["entry_id"])
     if coordinator is None:
@@ -88,6 +99,7 @@ async def _device_command(hass: HomeAssistant, connection, msg: dict, action: st
         if action == "list": result = coordinator.view()
         elif action == "refresh": result = await coordinator.async_refresh()
         elif action == "set_timer": result = await coordinator.set_timer(msg["timer"], msg.get("values", {}))
+        elif action == "set_timers_enabled": result = await coordinator.set_timers_enabled(msg["enabled"])
         else: result = await coordinator.clear_timer(msg["timer"])
         connection.send_result(msg["id"], result)
     except Exception as err:  # HA will render a safe client error; no secrets are included.
