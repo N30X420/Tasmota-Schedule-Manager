@@ -22,15 +22,24 @@ def async_register_websocket(hass: HomeAssistant) -> None:
 @websocket_api.async_response
 async def _handler(hass: HomeAssistant, connection, msg: dict) -> None:
     if msg["type"] == f"{DOMAIN}/entries":
+        configured = hass.config_entries.async_entries(DOMAIN)
         connection.send_result(msg["id"], {"entries": [
-            {"entry_id": entry_id, "title": coordinator.entry.title, "topic": coordinator.topic}
-            for entry_id, coordinator in hass.data[DOMAIN].items()
-            if hasattr(coordinator, "entry")
+            {
+                "entry_id": entry.entry_id,
+                "title": entry.title,
+                "topic": entry.data.get("topic", ""),
+                "loaded": entry.entry_id in hass.data[DOMAIN],
+            }
+            for entry in configured
         ]})
         return
     coordinator = hass.data[DOMAIN].get(msg["entry_id"])
     if coordinator is None:
-        connection.send_error(msg["id"], "not_found", "Unknown Tasmota device")
+        connection.send_error(
+            msg["id"],
+            "not_loaded",
+            "This Tasmota Schedule Manager entry is configured but not loaded. Check Home Assistant logs.",
+        )
         return
     try:
         action = msg["type"].rsplit("/", 1)[-1]
