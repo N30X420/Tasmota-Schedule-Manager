@@ -11,31 +11,71 @@ from .const import DOMAIN
 def async_register_websocket(hass: HomeAssistant) -> None:
     if hass.data.setdefault(DOMAIN, {}).get("_websocket_registered"):
         return
-    websocket_api.async_register_command(hass, _handler)
+    for handler in (_entries, _list, _refresh, _set_timer, _clear_timer):
+        websocket_api.async_register_command(hass, handler)
     hass.data[DOMAIN]["_websocket_registered"] = True
 
 
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/entries"})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _entries(hass: HomeAssistant, connection, msg: dict) -> None:
+    configured = hass.config_entries.async_entries(DOMAIN)
+    connection.send_result(msg["id"], {"entries": [
+        {
+            "entry_id": entry.entry_id,
+            "title": entry.title,
+            "topic": entry.data.get("topic", ""),
+            "loaded": entry.entry_id in hass.data[DOMAIN],
+        }
+        for entry in configured
+    ]})
+
+
 @websocket_api.websocket_command({
-    vol.Required("type"): vol.In([f"{DOMAIN}/{name}" for name in ("entries", "list", "refresh", "set_timer", "clear_timer")]),
-    vol.Optional("entry_id"): str,
-    vol.Optional("timer"): int,
-    vol.Optional("values"): dict,
+    vol.Required("type"): f"{DOMAIN}/list",
+    vol.Required("entry_id"): str,
 })
 @websocket_api.require_admin
 @websocket_api.async_response
-async def _handler(hass: HomeAssistant, connection, msg: dict) -> None:
-    if msg["type"] == f"{DOMAIN}/entries":
-        configured = hass.config_entries.async_entries(DOMAIN)
-        connection.send_result(msg["id"], {"entries": [
-            {
-                "entry_id": entry.entry_id,
-                "title": entry.title,
-                "topic": entry.data.get("topic", ""),
-                "loaded": entry.entry_id in hass.data[DOMAIN],
-            }
-            for entry in configured
-        ]})
-        return
+async def _list(hass: HomeAssistant, connection, msg: dict) -> None:
+    await _device_command(hass, connection, msg, "list")
+
+
+@websocket_api.websocket_command({
+    vol.Required("type"): f"{DOMAIN}/refresh",
+    vol.Required("entry_id"): str,
+})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _refresh(hass: HomeAssistant, connection, msg: dict) -> None:
+    await _device_command(hass, connection, msg, "refresh")
+
+
+@websocket_api.websocket_command({
+    vol.Required("type"): f"{DOMAIN}/set_timer",
+    vol.Required("entry_id"): str,
+    vol.Required("timer"): int,
+    vol.Required("values"): dict,
+})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _set_timer(hass: HomeAssistant, connection, msg: dict) -> None:
+    await _device_command(hass, connection, msg, "set_timer")
+
+
+@websocket_api.websocket_command({
+    vol.Required("type"): f"{DOMAIN}/clear_timer",
+    vol.Required("entry_id"): str,
+    vol.Required("timer"): int,
+})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _clear_timer(hass: HomeAssistant, connection, msg: dict) -> None:
+    await _device_command(hass, connection, msg, "clear_timer")
+
+
+async def _device_command(hass: HomeAssistant, connection, msg: dict, action: str) -> None:
     coordinator = hass.data[DOMAIN].get(msg["entry_id"])
     if coordinator is None:
         connection.send_error(
@@ -45,7 +85,6 @@ async def _handler(hass: HomeAssistant, connection, msg: dict) -> None:
         )
         return
     try:
-        action = msg["type"].rsplit("/", 1)[-1]
         if action == "list": result = coordinator.view()
         elif action == "refresh": result = await coordinator.async_refresh()
         elif action == "set_timer": result = await coordinator.set_timer(msg["timer"], msg.get("values", {}))
