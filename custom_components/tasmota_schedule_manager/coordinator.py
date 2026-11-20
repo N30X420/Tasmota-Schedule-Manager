@@ -17,10 +17,15 @@ class TasmotaCoordinator:
         self.mqtt = TasmotaMqtt(hass, self.topic)
         self.timers: dict[int, dict] = {}
         self.loaded = False
+        self.error: str | None = None
 
     async def async_start(self) -> None:
         await self.mqtt.start()
-        await self.async_refresh()
+        try:
+            await self.async_refresh()
+        except Exception as err:
+            # Keep the entry visible so the card can retry after MQTT becomes available.
+            self.error = str(err)
 
     async def async_stop(self) -> None:
         await self.mqtt.stop()
@@ -34,11 +39,13 @@ class TasmotaCoordinator:
                 timers[number] = {"id": number, **value}
         self.timers = timers
         self.loaded = True
+        self.error = None
         return self.view()
 
     def view(self) -> dict:
         return {"entry_id": self.entry.entry_id, "title": self.entry.title,
                 "topic": self.topic, "loaded": self.loaded,
+                "error": self.error,
                 "timers": [self.timers[n] for n in sorted(self.timers)]}
 
     async def set_timer(self, number: int, values: dict) -> dict:

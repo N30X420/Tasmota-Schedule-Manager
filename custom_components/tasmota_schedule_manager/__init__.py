@@ -1,6 +1,7 @@
 """Tasmota Schedule Manager."""
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
@@ -11,24 +12,32 @@ from .const import DOMAIN
 from .coordinator import TasmotaCoordinator
 from .websocket import async_register_websocket
 
+LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
-    await hass.http.async_register_static_paths([
-        StaticPathConfig(
-            f"/{DOMAIN}/tasmota-schedule-card.js",
-            str(Path(__file__).parent / "www" / "tasmota-schedule-card.js"),
-            cache_headers=False,
-        )
-    ])
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                f"/{DOMAIN}/tasmota-schedule-card.js",
+                str(Path(__file__).parent / "www" / "tasmota-schedule-card.js"),
+                cache_headers=False,
+            )
+        ]
+    )
     async_register_websocket(hass)
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = TasmotaCoordinator(hass, entry)
-    await coordinator.async_start()
+    # Register before the first MQTT read so the card can report/retry a device
+    # even when the broker or device is temporarily unavailable at startup.
     hass.data[DOMAIN][entry.entry_id] = coordinator
+    await coordinator.async_start()
+    if coordinator.error:
+        LOGGER.warning("Could not initially read Tasmota timers for %s: %s", entry.title, coordinator.error)
     return True
 
 

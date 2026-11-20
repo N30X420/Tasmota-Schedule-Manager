@@ -20,7 +20,8 @@ The device remains configured through Home Assistant's Tasmota/MQTT integration.
 1. In HACS, choose **Custom repositories**.
 2. Add this repository as an **Integration**.
 3. Download **Tasmota Schedule Manager** and restart Home Assistant.
-4. Add the integration from **Settings → Devices & services → Add integration**.
+4. Add the integration from **Settings → Devices & services → Add integration** and complete at least one Tasmota device entry.
+5. Add the Lovelace card resource and card described below.
 
 ### Manual
 
@@ -60,6 +61,8 @@ type: module
 ```
 
 After installing or updating the integration, restart Home Assistant before adding the resource. If the card still says that the custom element is not found, open the resource URL in a browser and confirm that it returns JavaScript rather than a 404 page, then hard-refresh the Home Assistant dashboard.
+
+The `/tasmota_schedule_manager/...` URL is served by this integration and is available only after Home Assistant has successfully loaded at least one Tasmota Schedule Manager config entry. The alternative `/local/tasmota-schedule-card.js` URL is served globally from `/config/www` and does not depend on this integration starting successfully.
 
 Then add a manual card:
 

@@ -17,6 +17,13 @@ class TasmotaScheduleCard extends HTMLElement {
   async selectEntry(entry) { this.entry=entry; this.data=null; this.render(); await this.load(); }
   async refresh() { this.data=await this.call('refresh'); this.render(); }
   async saveTimer(id, values) { this.data=await this.call('set_timer',{timer:id,values}); this.render(); }
+  async createTimer() {
+    const used=new Set((this.data?.timers||[]).map(timer=>timer.id));
+    const id=[...Array(16)].map((_,index)=>index+1).find(number=>!used.has(number));
+    if(!id) return;
+    this.data=await this.call('set_timer',{timer:id,values:{Enable:0,Mode:0,Time:'00:00',Window:0,Days:'SMTWTFS',Repeat:1,Output:1,Action:0}});
+    this.render();
+  }
   async clearTimer(id) { if(confirm(`Clear Timer ${id}?`)) { this.data=await this.call('clear_timer',{timer:id}); this.render(); } }
   render() {
     const s=this.shadowRoot; if(!s) return; s.innerHTML=`<style>
@@ -25,9 +32,11 @@ class TasmotaScheduleCard extends HTMLElement {
     if(!this.entry) { card.append(this.el('p',{textContent:'Configure a Tasmota Schedule Manager device first.'})); s.append(card); return; }
     const selector=this.el('select'); for(const entry of (this.entries||[])) { const option=this.el('option',{value:entry.entry_id,textContent:`${entry.title} (${entry.topic})`}); option.selected=entry.entry_id===this.entry; selector.append(option); } selector.onchange=()=>this.selectEntry(selector.value); card.insertBefore(selector, card.children[1]);
     if(this.error) card.append(this.el('p',{className:'error',textContent:this.error}));
-    const head=this.el('header'); head.append(this.el('span',{textContent:this.data?.title||'Loading…'})); const reload=this.el('button',{textContent:'Refresh'}); reload.onclick=()=>this.refresh(); head.append(reload); card.append(head);
+    const head=this.el('header'); head.append(this.el('span',{textContent:this.data?.title||'Loading…'})); const reload=this.el('button',{textContent:'Refresh'}); reload.onclick=()=>this.refresh(); head.append(reload); if(this.data && this.data.timers.length<16) { const add=this.el('button',{textContent:'New timer'}); add.onclick=()=>this.createTimer(); head.append(add); } card.append(head);
     if(!this.data) { card.append(this.el('p',{className:'muted',textContent:'Loading timers…'})); s.append(card); return; }
+    if(this.data.error) card.append(this.el('p',{className:'error',textContent:`Could not read timers: ${this.data.error}`}));
     card.append(this.el('p',{className:'muted',textContent:`MQTT topic: ${this.data.topic}`}));
+    if(!this.data.timers.length) card.append(this.el('p',{className:'muted',textContent:'No timer data returned yet. Check the topic and MQTT connection, then press Refresh.'}));
     for(const timer of this.data.timers) {
       const row=this.el('div',{className:'timer'}); row.append(this.el('strong',{textContent:`Timer ${timer.id}`}));
       const grid=this.el('div',{className:'grid'}); const values={Enable:timer.Enable??0,Mode:timer.Mode??0,Time:timer.Time??'00:00',Window:timer.Window??0,Days:timer.Days??'SMTWTFS',Repeat:timer.Repeat??1,Output:timer.Output??1,Action:timer.Action??0}; const inputs={};
