@@ -9,6 +9,21 @@ from .const import MAX_TIMERS
 from .mqtt import TasmotaMqtt
 
 
+def _as_bool(value: object) -> bool:
+    """Convert the numeric or textual value returned by Tasmota to bool."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "on", "true", "enabled"}:
+            return True
+        if normalized in {"0", "off", "false", "disabled"}:
+            return False
+    raise ValueError(f"Unexpected Tasmota boolean value: {value!r}")
+
+
 class TasmotaCoordinator:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass, self.entry = hass, entry
@@ -36,7 +51,7 @@ class TasmotaCoordinator:
             result = await self.mqtt.command("Timers")
             value = result.get("Timers")
             if value is not None:
-                self.timers_enabled = bool(int(value))
+                self.timers_enabled = _as_bool(value)
         except Exception:
             # Keep timer reads usable on firmware builds without the global setting.
             self.timers_enabled = None
@@ -62,7 +77,7 @@ class TasmotaCoordinator:
         value = result.get("Timers")
         if value is None:
             raise HomeAssistantError("Tasmota did not confirm the global timer setting")
-        self.timers_enabled = bool(int(value))
+        self.timers_enabled = _as_bool(value)
         return self.view()
 
     async def set_timer(self, number: int, values: dict) -> dict:

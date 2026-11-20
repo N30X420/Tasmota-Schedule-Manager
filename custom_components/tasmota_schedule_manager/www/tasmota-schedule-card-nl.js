@@ -1,7 +1,7 @@
 import {TasmotaScheduleCard} from './tasmota-schedule-card.js';
 
 const DUTCH = {
-  title: 'Tasmota-schema’s', chooseDevice: 'Kies een Tasmota-apparaat', refresh: 'Vernieuwen', newTimer: 'Nieuwe timer',
+  title: 'Tasmota-schema’s', chooseDevice: 'Kies een Tasmota-apparaat', refresh: 'Vernieuwen',
   addEntry: 'Voeg eerst een Tasmota Schedule Manager-configuratie toe en voltooi deze.', loading: 'Timers laden…',
   readError: 'Timers konden niet worden gelezen', noTimers: 'Geen timergegevens ontvangen. Controleer MQTT en druk op Vernieuwen.',
   timer: 'Timer', enabled: 'Ingeschakeld', enableTimer: 'Timer {id} inschakelen', time: 'Tijd of verschuiving', mode: 'Schema-modus',

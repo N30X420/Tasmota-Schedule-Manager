@@ -1,6 +1,6 @@
 const ENGLISH = {
   title: 'Tasmota schedules', chooseDevice: 'Choose Tasmota device',
-  refresh: 'Refresh', newTimer: 'New timer', addEntry: 'Add and complete a Tasmota Schedule Manager integration entry first.',
+  refresh: 'Refresh', addEntry: 'Add and complete a Tasmota Schedule Manager integration entry first.',
   loading: 'Loading timers…', readError: 'Could not read timers', noTimers: 'No timer data returned. Check MQTT and press Refresh.',
   timer: 'Timer', enabled: 'Enabled', enableTimer: 'Enable Timer {id}', time: 'Time or offset', mode: 'Schedule mode',
   clock: 'Clock time', sunrise: 'Sunrise offset', sunset: 'Sunset offset', repeat: 'Repeat', advanced: 'Advanced options',
@@ -124,6 +124,8 @@ export class TasmotaScheduleCard extends HTMLElement {
     if (!confirm(this._t('clearConfirm', {id}))) return;
     try {
       this.data = await this.call('clear_timer', {timer: id});
+      // Read the complete timer state back from the device after clearing.
+      this.data = await this.call('refresh');
       this.error = null;
       this.notice = {text: this._t('cleared', {id}), kind: 'success'};
     } catch (error) {
@@ -285,10 +287,9 @@ export class TasmotaScheduleCard extends HTMLElement {
     if (this.data.error) card.append(this.el('div', {className: 'error', text: `${this._t('readError')}: ${this.data.error}`}));
     card.append(this.el('div', {className: 'toolbar'},
       this.el('button', {text: this._t('refresh'), type: 'button', onclick: () => this.refresh()}),
-      this.el('button', {className: 'primary', text: this._t('newTimer'), type: 'button', onclick: () => this.createTimer()}),
       this.el('label', {className: 'global-timers'},
         this.el('input', {type: 'checkbox', checked: this.data.timers_enabled === true,
-          disabled: this.data.timers_enabled === null, onchange: event => this.setTimersEnabled(event.target.checked)}),
+          onchange: event => this.setTimersEnabled(event.target.checked)}),
         this.el('span', {text: this._t('enableTimers')}))));
     card.append(this.el('div', {className: 'muted topic', text: `${this._t('mqttTopic')}: ${this.data.topic}`}));
     if (!this.data.timers.length) card.append(this.el('p', {className: 'muted', text: this._t('noTimers')}));
