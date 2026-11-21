@@ -30,8 +30,6 @@ jobs:
         with:
           category: integration
           comment: false
-          # Custom repositories do not require a home-assistant/brands entry.
-          ignore: brands
 
   hassfest:
     name: Hassfest
