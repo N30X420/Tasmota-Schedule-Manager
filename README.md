@@ -14,6 +14,7 @@ This architecture is supported: Home Assistant's official Tasmota integration co
 - Read from `stat/<topic>/RESULT` and write to `cmnd/<topic>/Timer1` through `Timer16`.
 - Support fixed time, sunrise/sunset mode, weekday masks, repeat, output, action, and random windows.
 - Read and control Tasmota's global **Timers** setting (the **Enable Timers** checkbox in the Tasmota web UI).
+- Edit timer names locally in Home Assistant; names are not sent to or stored on the Tasmota device.
 - Include a Lovelace card with a device selector when multiple devices are configured.
 
 ## Installation

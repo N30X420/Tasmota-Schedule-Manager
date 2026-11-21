@@ -4,6 +4,7 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.storage import Store
 
 from .const import MAX_TIMERS
 from .mqtt import TasmotaMqtt
@@ -30,11 +31,19 @@ class TasmotaCoordinator:
         self.topic = entry.data["topic"]
         self.mqtt = TasmotaMqtt(hass, self.topic)
         self.timers: dict[int, dict] = {}
+        self.names: dict[int, str] = {}
+        self.name_store = Store(hass, 1, f"tasmota_schedule_manager_names_{entry.entry_id}")
         self.timers_enabled: bool | None = None
         self.loaded = False
         self.error: str | None = None
 
     async def async_start(self) -> None:
+        stored = await self.name_store.async_load()
+        if isinstance(stored, dict):
+            self.names = {
+                int(key): value.strip() for key, value in stored.items()
+                if str(key).isdigit() and isinstance(value, str) and value.strip()
+            }
         try:
             await self.mqtt.start()
             await self.async_refresh()
@@ -70,7 +79,18 @@ class TasmotaCoordinator:
                 "topic": self.topic, "loaded": self.loaded,
                 "timers_enabled": self.timers_enabled,
                 "error": self.error,
-                "timers": [self.timers[n] for n in sorted(self.timers)]}
+                "timers": [{**self.timers[n], "name": self.names.get(n, "")} for n in sorted(self.timers)]}
+
+    async def set_timer_name(self, number: int, name: str) -> dict:
+        if number not in range(1, MAX_TIMERS + 1):
+            raise HomeAssistantError("Timer number must be between 1 and 16")
+        name = name.strip()[:80]
+        if name:
+            self.names[number] = name
+        else:
+            self.names.pop(number, None)
+        await self.name_store.async_save({str(key): value for key, value in self.names.items()})
+        return self.view()
 
     async def set_timers_enabled(self, enabled: bool) -> dict:
         result = await self.mqtt.command("Timers", 1 if enabled else 0)
@@ -100,4 +120,6 @@ class TasmotaCoordinator:
         if f"Timer{number}" not in result:
             raise HomeAssistantError(f"Tasmota did not confirm clearing Timer{number}")
         self.timers.pop(number, None)
+        self.names.pop(number, None)
+        await self.name_store.async_save({str(key): value for key, value in self.names.items()})
         return self.view()

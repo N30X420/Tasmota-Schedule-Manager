@@ -4,7 +4,7 @@ const DUTCH = {
   title: 'Tasmota-schema’s', chooseDevice: 'Kies een Tasmota-apparaat', refresh: 'Vernieuwen',
   addEntry: 'Voeg eerst een Tasmota Schedule Manager-configuratie toe en voltooi deze.', loading: 'Timers laden…',
   readError: 'Timers konden niet worden gelezen', noTimers: 'Geen timergegevens ontvangen. Controleer MQTT en druk op Vernieuwen.',
-  timer: 'Timer', enabled: 'Ingeschakeld', enableTimer: 'Timer {id} inschakelen', time: 'Tijd of verschuiving', mode: 'Schema-modus',
+  timer: 'Timer', enabled: 'Ingeschakeld', enableTimer: 'Timer {id} inschakelen', nameLabel: 'Naam voor timer {id}', nameSaved: 'Naam van timer {id} opgeslagen.', time: 'Tijd of verschuiving', mode: 'Schema-modus',
   clock: 'Kloktijd', sunrise: 'Verschuiving zonsopkomst', sunset: 'Verschuiving zonsondergang', repeat: 'Herhalen', advanced: 'Geavanceerde opties',
   randomWindow: 'Willekeurig venster (minuten)', repeatBehavior: 'Herhaalgedrag', repeating: 'Herhalen', oneTime: 'Eenmalig',
   output: 'Uitgang / relais', action: 'Actie', off: 'UITSCHAKELEN', on: 'INSCHAKELEN', toggle: 'OMSCHAKELEN', rule: 'REGEL / KNIPPEREN',

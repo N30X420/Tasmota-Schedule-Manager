@@ -3,6 +3,7 @@ const ENGLISH = {
   refresh: 'Refresh', addEntry: 'Add and complete a Tasmota Schedule Manager integration entry first.',
   loading: 'Loading timers…', readError: 'Could not read timers', noTimers: 'No timer data returned. Check MQTT and press Refresh.',
   timer: 'Timer', enabled: 'Enabled', enableTimer: 'Enable Timer {id}', time: 'Time or offset', mode: 'Schedule mode',
+  nameLabel: 'Name for Timer {id}', nameSaved: 'Timer {id} name saved.',
   clock: 'Clock time', sunrise: 'Sunrise offset', sunset: 'Sunset offset', repeat: 'Repeat', advanced: 'Advanced options',
   randomWindow: 'Random window (minutes)', repeatBehavior: 'Repeat behavior', repeating: 'Repeating', oneTime: 'One time',
   output: 'Output / relay', action: 'Action', off: 'Turn OFF', on: 'Turn ON', toggle: 'TOGGLE', rule: 'RULE / BLINK',
@@ -36,7 +37,9 @@ export class TasmotaScheduleCard extends HTMLElement {
   set hass(value) {
     this._hass = value;
     if (!this.data && !this.error) this.load();
-    else if (this.data) this.render();
+    // Do not rebuild an already-loaded form on every Home Assistant state
+    // update. Timer drafts live in the rendered inputs until the user saves,
+    // so rebuilding here would reset partially configured timers.
   }
 
   get hass() { return this._hass; }
@@ -120,6 +123,17 @@ export class TasmotaScheduleCard extends HTMLElement {
     this.render();
   }
 
+  async saveTimerName(id, name) {
+    try {
+      this.data = await this.call('set_timer_name', {timer: id, name});
+      this.error = null;
+      this.notice = {text: this._t('nameSaved', {id}), kind: 'success'};
+    } catch (error) {
+      this.error = error?.message || String(error);
+    }
+    this.render();
+  }
+
   async clearTimer(id) {
     if (!confirm(this._t('clearConfirm', {id}))) return;
     try {
@@ -195,8 +209,12 @@ export class TasmotaScheduleCard extends HTMLElement {
     const draft = {...timer};
     const row = this.el('section', {className: 'timer-row'});
     const heading = this.el('div', {className: 'timer-heading'});
+    const defaultName = `${this._t('timer')} ${timer.id}`;
+    const name = this.el('input', {type: 'text', className: 'timer-name', value: timer.name || defaultName, maxlength: '80',
+      'aria-label': this._t('nameLabel', {id: timer.id}), title: this._t('nameLabel', {id: timer.id}),
+      onchange: event => this.saveTimerName(timer.id, event.target.value)});
     const title = this.el('div', {},
-      this.el('div', {className: 'timer-title', text: `${this._t('timer')} ${timer.id}`}),
+      name,
       this.el('div', {className: 'timer-action', text: this._actionLabel(timer)}));
     const enabled = this.el('input', {type: 'checkbox', className: 'switch', checked: Number(timer.Enable) === 1, 'aria-label': this._t('enableTimer', {id: timer.id})});
     enabled.onchange = () => { draft.Enable = enabled.checked ? 1 : 0; };
@@ -204,7 +222,8 @@ export class TasmotaScheduleCard extends HTMLElement {
     row.append(heading);
 
     const main = this.el('div', {className: 'main-fields'});
-    const timeField = this.el('input', {type: 'text', value: draft.Time || '00:00', placeholder: '07:30', 'aria-label': this._t('timeFor', {id: timer.id})});
+    const timeValue = String(draft.Time || '00:00');
+    const timeField = this.el('input', {type: 'time', step: '1', value: /^\d{2}:\d{2}$/.test(timeValue) ? `${timeValue}:00` : timeValue, 'aria-label': this._t('timeFor', {id: timer.id})});
     timeField.onchange = () => { draft.Time = timeField.value.trim(); };
     const mode = this.el('select', {'aria-label': this._t('modeFor', {id: timer.id})});
     [[0, this._t('clock')], [1, this._t('sunrise')], [2, this._t('sunset')]].forEach(([value, label]) => mode.append(this.el('option', {value, text: label})));
@@ -258,7 +277,7 @@ export class TasmotaScheduleCard extends HTMLElement {
       .header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.heading{font-size:20px;font-weight:650}
       select,input{background:var(--card-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color,#8886);border-radius:7px;padding:8px;font:inherit;box-sizing:border-box}
       select{max-width:100%}.toolbar,.row-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}button{border:0;border-radius:8px;padding:9px 13px;font:inherit;cursor:pointer;background:var(--secondary-background-color,#eee);color:var(--primary-text-color)}button.primary,.day.active{background:var(--primary-color,#03a9f4);color:var(--text-primary-color,#fff)}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
-      .muted,.timer-action,.status{color:var(--secondary-text-color);font-size:12px}.error{color:var(--error-color);padding:8px 0}.timer-row{border-top:1px solid var(--divider-color,#ddd);padding:14px 0}.timer-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.timer-title{font-size:14px;font-weight:700}.enabled{display:flex;align-items:center;gap:7px;font-size:12px}.switch{width:22px;height:22px;accent-color:var(--primary-color)}
+      .muted,.timer-action,.status{color:var(--secondary-text-color);font-size:12px}.error{color:var(--error-color);padding:8px 0}.timer-row{border-top:1px solid var(--divider-color,#ddd);padding:14px 0}.timer-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.timer-title{font-size:14px;font-weight:700}.timer-name{width:100%;max-width:280px;font-size:14px;font-weight:700}.enabled{display:flex;align-items:center;gap:7px;font-size:12px}.switch{width:22px;height:22px;accent-color:var(--primary-color)}
       .main-fields,.advanced{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.field{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--secondary-text-color)}.field input,.field select{width:100%;margin-top:auto}.weekday-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:12px}.weekday-label{font-size:12px;color:var(--secondary-text-color);margin-right:4px}.day{padding:7px 9px;border:1px solid var(--divider-color,#ddd);background:transparent;font-size:12px}.day.active{border-color:var(--primary-color)}details{margin-top:12px}summary{cursor:pointer;color:var(--secondary-text-color);font-size:12px}.advanced{padding-top:10px}.row-actions{margin-bottom:0}.topic{margin:4px 0 12px}.notice{padding:8px 10px;border-radius:6px;margin:8px 0;color:var(--primary-text-color);background:color-mix(in srgb,var(--success-color,#43a047) 18%,transparent)}
       @media(max-width:650px){.main-fields,.advanced{grid-template-columns:1fr}.header{align-items:flex-start;flex-direction:column}}
     </style>`;
