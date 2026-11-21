@@ -11,7 +11,7 @@ This architecture is supported: Home Assistant's official Tasmota integration co
 ## Features
 
 - Configure one integration entry per Tasmota device.
-- Select the existing Tasmota device during setup and confirm its MQTT topic.
+- Select an existing Tasmota device during setup and review its prefilled name and MQTT topic.
 - Manage all 16 Tasmota timer slots.
 - Read from `stat/<topic>/RESULT` and write to `cmnd/<topic>/Timer1` through `Timer16`.
 - Support fixed time, sunrise/sunset mode, weekday masks, repeat, output, action, and random windows.
@@ -35,11 +35,9 @@ Copy `custom_components/tasmota_schedule_manager` into Home Assistant's `custom_
 
 ## Configure a device
 
-The Tasmota device must already be visible under Home Assistant's **Tasmota** integration. During setup, select that existing Tasmota device, enter its MQTT topic exactly as configured (for example `sonoff_livingroom`), and give the entry a friendly name.
+The Tasmota device must already be visible under Home Assistant's **Tasmota** integration. Select the device first. On the next screen, the manager prefills the name shown in Home Assistant and looks up the MQTT topic from the device's native discovery message. You can edit both fields before saving. If the topic is blank, enter it manually.
 
-The device selector identifies the Tasmota device, while the topic is confirmed separately because the device registry does not expose one canonical Tasmota command topic for every MQTT discovery layout.
-
-### Find the MQTT topic
+### Find the MQTT topic manually
 
 Open the Tasmota device's own web interface and go to **Configuration → Configure MQTT**. Copy the value in the **Topic** field into the integration's **Tasmota MQTT topic** field.
 

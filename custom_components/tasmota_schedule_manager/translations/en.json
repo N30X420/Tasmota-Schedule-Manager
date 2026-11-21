@@ -1,1 +1,28 @@
-{"config":{"step":{"user":{"title":"Add Tasmota device","description":"Select the existing MQTT device and enter its Tasmota MQTT topic.","data":{"name":"Name","topic":"Tasmota MQTT topic","device":"Existing MQTT device"}}},"error":{"invalid_topic":"Enter only the device topic, for example sonoff_livingroom."}}}
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Select a Tasmota device",
+        "description": "Choose a device already set up in Home Assistant's Tasmota integration.",
+        "data": {
+          "device": "Tasmota device"
+        }
+      },
+      "details": {
+        "title": "Confirm device details",
+        "description": "Review the name and MQTT topic. If the topic is blank, enter it from the device's MQTT settings.",
+        "data": {
+          "name": "Name",
+          "topic": "Tasmota MQTT topic"
+        }
+      }
+    },
+    "error": {
+      "invalid_device": "Select a device from the Tasmota integration.",
+      "invalid_topic": "Enter only the device topic, for example sonoff_livingroom."
+    },
+    "abort": {
+      "unsupported_mqtt_layout": "This device uses a custom MQTT layout. Schedule Manager requires the FullTopic setting %prefix%/%topic%/ and the cmnd and stat prefixes. Update the device's MQTT settings and try again."
+    }
+  }
+}
