@@ -1,6 +1,8 @@
 """Tasmota timer state and staged edits."""
 from __future__ import annotations
 
+import asyncio
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -33,6 +35,7 @@ class TasmotaCoordinator:
         self.timers: dict[int, dict] = {}
         self.names: dict[int, str] = {}
         self.name_store = Store(hass, 1, f"tasmota_schedule_manager_names_{entry.entry_id}")
+        self._timer_lock = asyncio.Lock()
         self.timers_enabled: bool | None = None
         self.loaded = False
         self.error: str | None = None
@@ -84,13 +87,21 @@ class TasmotaCoordinator:
     async def set_timer_name(self, number: int, name: str) -> dict:
         if number not in range(1, MAX_TIMERS + 1):
             raise HomeAssistantError("Timer number must be between 1 and 16")
+        async with self._timer_lock:
+            await self._save_timer_name(number, name)
+            return self.view()
+
+    async def _save_timer_name(self, number: int, name: str) -> None:
         name = name.strip()[:80]
+        if name == self.names.get(number, ""):
+            return
+        names = self.names.copy()
         if name:
-            self.names[number] = name
+            names[number] = name
         else:
-            self.names.pop(number, None)
-        await self.name_store.async_save({str(key): value for key, value in self.names.items()})
-        return self.view()
+            names.pop(number, None)
+        await self.name_store.async_save({str(key): value for key, value in names.items()})
+        self.names = names
 
     async def set_timers_enabled(self, enabled: bool) -> dict:
         result = await self.mqtt.command("Timers", 1 if enabled else 0)
@@ -100,26 +111,29 @@ class TasmotaCoordinator:
         self.timers_enabled = _as_bool(value)
         return self.view()
 
-    async def set_timer(self, number: int, values: dict) -> dict:
+    async def set_timer(self, number: int, values: dict, name: str | None = None) -> dict:
         if number not in range(1, MAX_TIMERS + 1):
             raise HomeAssistantError("Timer number must be between 1 and 16")
         allowed = {"Enable", "Mode", "Time", "Window", "Days", "Repeat", "Output", "Action"}
         if set(values) - allowed:
             raise HomeAssistantError("Unsupported Tasmota timer field")
-        result = await self.mqtt.command(f"Timer{number}", values)
-        value = result.get(f"Timer{number}")
-        if not isinstance(value, dict):
-            raise HomeAssistantError(f"Tasmota did not confirm Timer{number}")
-        self.timers[number] = {"id": number, **value}
-        return self.view()
+        async with self._timer_lock:
+            result = await self.mqtt.command(f"Timer{number}", values)
+            value = result.get(f"Timer{number}")
+            if not isinstance(value, dict):
+                raise HomeAssistantError(f"Tasmota did not confirm Timer{number}")
+            self.timers[number] = {"id": number, **value}
+            if name is not None:
+                await self._save_timer_name(number, name)
+            return self.view()
 
     async def clear_timer(self, number: int) -> dict:
         if number not in range(1, MAX_TIMERS + 1):
             raise HomeAssistantError("Timer number must be between 1 and 16")
-        result = await self.mqtt.command(f"Timer{number}", 0)
-        if f"Timer{number}" not in result:
-            raise HomeAssistantError(f"Tasmota did not confirm clearing Timer{number}")
-        self.timers.pop(number, None)
-        self.names.pop(number, None)
-        await self.name_store.async_save({str(key): value for key, value in self.names.items()})
-        return self.view()
+        async with self._timer_lock:
+            result = await self.mqtt.command(f"Timer{number}", 0)
+            if f"Timer{number}" not in result:
+                raise HomeAssistantError(f"Tasmota did not confirm clearing Timer{number}")
+            self.timers.pop(number, None)
+            await self._save_timer_name(number, "")
+            return self.view()

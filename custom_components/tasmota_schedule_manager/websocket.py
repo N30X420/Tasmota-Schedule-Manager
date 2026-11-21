@@ -57,6 +57,7 @@ async def _refresh(hass: HomeAssistant, connection, msg: dict) -> None:
     vol.Required("entry_id"): str,
     vol.Required("timer"): int,
     vol.Required("values"): dict,
+    vol.Optional("name"): str,
 })
 @websocket_api.require_admin
 @websocket_api.async_response
@@ -110,7 +111,8 @@ async def _device_command(hass: HomeAssistant, connection, msg: dict, action: st
     try:
         if action == "list": result = coordinator.view()
         elif action == "refresh": result = await coordinator.async_refresh()
-        elif action == "set_timer": result = await coordinator.set_timer(msg["timer"], msg.get("values", {}))
+        elif action == "set_timer":
+            result = await coordinator.set_timer(msg["timer"], msg["values"], msg.get("name"))
         elif action == "set_timer_name": result = await coordinator.set_timer_name(msg["timer"], msg["name"])
         elif action == "set_timers_enabled": result = await coordinator.set_timers_enabled(msg["enabled"])
         else: result = await coordinator.clear_timer(msg["timer"])

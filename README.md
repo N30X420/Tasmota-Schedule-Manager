@@ -89,7 +89,7 @@ type: custom:tasmota-schedule-card-nl
 title: Tasmota-schema's
 ```
 
-The card shows a confirmation message after a timer is saved successfully. The action (off, on, toggle, or rule/blink) is available directly in each timer row; less frequently used timer options remain under **Advanced options**.
+Use **Save timer** to apply the name and timer settings together. The card confirms a successful save. The action (off, on, toggle, or rule/blink) is available directly in each timer row. In **Advanced options**, unused timer slots default to **Repeating**, and configured timers keep their saved repeat behavior.
 
 When several devices are configured, the card displays a selector. To pin a card to one device, add its config-entry ID:
 

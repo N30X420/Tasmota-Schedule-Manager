@@ -3,7 +3,7 @@ const ENGLISH = {
   refresh: 'Refresh', addEntry: 'Add and complete a Tasmota Schedule Manager integration entry first.',
   loading: 'Loading timers…', readError: 'Could not read timers', noTimers: 'No timer data returned. Check MQTT and press Refresh.',
   timer: 'Timer', enabled: 'Enabled', enableTimer: 'Enable Timer {id}', time: 'Time or offset', mode: 'Schedule mode',
-  nameLabel: 'Name for Timer {id}', nameSaved: 'Timer {id} name saved.',
+  nameLabel: 'Name for Timer {id}',
   clock: 'Clock time', sunrise: 'Sunrise offset', sunset: 'Sunset offset', repeat: 'Repeat', advanced: 'Advanced options',
   randomWindow: 'Random window (minutes)', repeatBehavior: 'Repeat behavior', repeating: 'Repeating', oneTime: 'One time',
   output: 'Output / relay', action: 'Action', off: 'Turn OFF', on: 'Turn ON', toggle: 'TOGGLE', rule: 'RULE / BLINK',
@@ -112,28 +112,6 @@ export class TasmotaScheduleCard extends HTMLElement {
     this.render();
   }
 
-  async saveTimer(id, values) {
-    try {
-      this.data = await this.call('set_timer', {timer: id, values});
-      this.error = null;
-      this.notice = {text: this._t('saved', {id}), kind: 'success'};
-    } catch (error) {
-      this.error = error?.message || String(error);
-    }
-    this.render();
-  }
-
-  async saveTimerName(id, name) {
-    try {
-      this.data = await this.call('set_timer_name', {timer: id, name});
-      this.error = null;
-      this.notice = {text: this._t('nameSaved', {id}), kind: 'success'};
-    } catch (error) {
-      this.error = error?.message || String(error);
-    }
-    this.render();
-  }
-
   async clearTimer(id) {
     if (!confirm(this._t('clearConfirm', {id}))) return;
     try {
@@ -205,14 +183,18 @@ export class TasmotaScheduleCard extends HTMLElement {
     sync();
   }
 
-  _timerRow(timer) {
+  _timerRow(timer, message = '') {
     const draft = {...timer};
+    // A cleared Tasmota slot reports an all-zero schedule, including Repeat.
+    const unused = Number(timer.Enable ?? 0) === 0 && Number(timer.Mode ?? 0) === 0 &&
+      (timer.Time ?? '00:00') === '00:00' && Number(timer.Window ?? 0) === 0 &&
+      this._days(timer).length === 0 && Number(timer.Output ?? 1) === 1 && Number(timer.Action ?? 0) === 0;
+    draft.Repeat = unused ? 1 : (timer.Repeat ?? 1);
     const row = this.el('section', {className: 'timer-row'});
     const heading = this.el('div', {className: 'timer-heading'});
     const defaultName = `${this._t('timer')} ${timer.id}`;
-    const name = this.el('input', {type: 'text', className: 'timer-name', value: timer.name || defaultName, maxlength: '80',
-      'aria-label': this._t('nameLabel', {id: timer.id}), title: this._t('nameLabel', {id: timer.id}),
-      onchange: event => this.saveTimerName(timer.id, event.target.value)});
+    const name = this.el('input', {type: 'text', className: 'timer-name', value: timer.name || '', placeholder: defaultName, maxlength: '80',
+      'aria-label': this._t('nameLabel', {id: timer.id}), title: this._t('nameLabel', {id: timer.id})});
     const title = this.el('div', {},
       name,
       this.el('div', {className: 'timer-action', text: this._actionLabel(timer)}));
@@ -246,7 +228,7 @@ export class TasmotaScheduleCard extends HTMLElement {
     windowInput.onchange = () => { draft.Window = Number(windowInput.value); };
     const repeat = this.el('select');
     [[1, this._t('repeating')], [0, this._t('oneTime')]].forEach(([value, label]) => repeat.append(this.el('option', {value, text: label})));
-    repeat.value = String(draft.Repeat ?? 1);
+    repeat.value = String(draft.Repeat);
     repeat.onchange = () => { draft.Repeat = Number(repeat.value); };
     const output = this.el('input', {type: 'number', min: '1', max: '16', value: draft.Output ?? 1});
     output.onchange = () => { draft.Output = Number(output.value); };
@@ -258,13 +240,34 @@ export class TasmotaScheduleCard extends HTMLElement {
     row.append(details);
 
     const buttons = this.el('div', {className: 'row-actions'});
-    buttons.append(this.el('button', {className: 'primary', text: this._t('save'), type: 'button', onclick: () => this.saveTimer(timer.id, {
-      Enable: Number(draft.Enable ?? 0), Mode: Number(draft.Mode ?? 0), Time: String(draft.Time || '00:00'),
-      Window: Number(draft.Window ?? 0), Days: String(draft.Days || 'SMTWTFS'), Repeat: Number(draft.Repeat ?? 1),
-      Output: Number(draft.Output ?? 1), Action: Number(draft.Action ?? 0),
-    })}));
+    const status = this.el('div', {role: 'status', className: message ? 'notice' : '', text: message});
+    const save = this.el('button', {className: 'primary', text: this._t('save'), type: 'button'});
+    save.onclick = async () => {
+      row.inert = true;
+      status.className = '';
+      status.textContent = '';
+      try {
+        const data = await this.call('set_timer', {timer: timer.id, name: name.value, values: {
+          Enable: Number(draft.Enable ?? 0), Mode: Number(draft.Mode ?? 0), Time: String(draft.Time || '00:00'),
+          Window: Number(draft.Window ?? 0), Days: String(draft.Days || 'SMTWTFS'), Repeat: Number(draft.Repeat),
+          Output: Number(draft.Output ?? 1), Action: Number(draft.Action ?? 0),
+        }});
+        if (!row.isConnected) return;
+        this.data = data;
+        const savedTimer = data.timers.find(item => item.id === timer.id);
+        const savedRow = this._timerRow(savedTimer, this._t('saved', {id: timer.id}));
+        savedRow.querySelector('details').open = details.open;
+        row.replaceWith(savedRow);
+      } catch (error) {
+        status.className = 'error';
+        status.textContent = error?.message || String(error);
+      } finally {
+        row.inert = false;
+      }
+    };
+    buttons.append(save);
     buttons.append(this.el('button', {text: this._t('clear'), type: 'button', onclick: () => this.clearTimer(timer.id)}));
-    row.append(buttons);
+    row.append(buttons, status);
     return row;
   }
 
