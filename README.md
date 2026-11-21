@@ -1,5 +1,7 @@
 # Tasmota Schedule Manager
 
+![Tasmota Schedule Manager logo](custom_components/tasmota_schedule_manager/brand/logo.png)
+
 Home Assistant custom integration and Lovelace card for managing native timers on Sonoff devices running Tasmota.
 
 The device remains configured through Home Assistant's Tasmota/MQTT integration. This project adds a management layer that reads and writes Tasmota timer slots over MQTT.
