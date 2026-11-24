@@ -296,13 +296,10 @@ export class TasmotaScheduleCard extends HTMLElement {
     card.append(header);
     if (this.notice) card.append(this.el('div', {className: 'notice', role: 'status', text: this.notice.text}));
     if (this.error) card.append(this.el('div', {className: 'error', text: this.error}));
-    if (!this.entry) {
-      card.append(this.el('p', {text: this._t('addEntry')}));
-      root.append(card);
-      return;
-    }
-    if (!this.data) {
-      card.append(this.el('p', {className: 'muted', text: this._t('loading')}));
+    if (!this.entry || !this.data) {
+      if (!this.error) {
+        card.append(this.el('p', {className: 'muted', text: this._t(this.entry ? 'loading' : 'addEntry')}));
+      }
       root.append(card);
       return;
     }

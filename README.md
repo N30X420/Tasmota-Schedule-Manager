@@ -57,6 +57,8 @@ Do not enter `cmnd/`, `stat/`, `/RESULT`, or `Timer1`. The integration builds th
 
 ## Lovelace card
 
+Administrators and standard Home Assistant users with permission to control all entities can view and edit schedules. Schedule commands run against configured MQTT topics and can affect any output on the device, so the card API requires full entity control. An administrator is required to configure the integration.
+
 Add the bundled JavaScript module as a dashboard resource:
 
 ```yaml

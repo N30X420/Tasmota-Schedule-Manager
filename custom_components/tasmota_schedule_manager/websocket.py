@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import voluptuous as vol
+from homeassistant.auth.permissions.const import POLICY_CONTROL
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import Unauthorized
 
 from .const import DOMAIN
 
@@ -16,10 +18,19 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     hass.data[DOMAIN]["_websocket_registered"] = True
 
 
+def _require_schedule_access(connection: websocket_api.ActiveConnection) -> None:
+    """Authorize access to schedules addressed by configured MQTT topics."""
+    user = connection.user
+    # A configured topic need not match the selected device and commands can
+    # affect any output on that topic. Entity-specific permission is insufficient.
+    if not user.is_admin and not user.permissions.access_all_entities(POLICY_CONTROL):
+        raise Unauthorized()
+
+
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/entries"})
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _entries(hass: HomeAssistant, connection, msg: dict) -> None:
+    _require_schedule_access(connection)
     configured = hass.config_entries.async_entries(DOMAIN)
     connection.send_result(msg["id"], {"entries": [
         {
@@ -36,7 +47,6 @@ async def _entries(hass: HomeAssistant, connection, msg: dict) -> None:
     vol.Required("type"): f"{DOMAIN}/list",
     vol.Required("entry_id"): str,
 })
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _list(hass: HomeAssistant, connection, msg: dict) -> None:
     await _device_command(hass, connection, msg, "list")
@@ -46,7 +56,6 @@ async def _list(hass: HomeAssistant, connection, msg: dict) -> None:
     vol.Required("type"): f"{DOMAIN}/refresh",
     vol.Required("entry_id"): str,
 })
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _refresh(hass: HomeAssistant, connection, msg: dict) -> None:
     await _device_command(hass, connection, msg, "refresh")
@@ -59,7 +68,6 @@ async def _refresh(hass: HomeAssistant, connection, msg: dict) -> None:
     vol.Required("values"): dict,
     vol.Optional("name"): str,
 })
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _set_timer(hass: HomeAssistant, connection, msg: dict) -> None:
     await _device_command(hass, connection, msg, "set_timer")
@@ -70,7 +78,6 @@ async def _set_timer(hass: HomeAssistant, connection, msg: dict) -> None:
     vol.Required("entry_id"): str,
     vol.Required("timer"): int,
 })
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _clear_timer(hass: HomeAssistant, connection, msg: dict) -> None:
     await _device_command(hass, connection, msg, "clear_timer")
@@ -82,7 +89,6 @@ async def _clear_timer(hass: HomeAssistant, connection, msg: dict) -> None:
     vol.Required("timer"): int,
     vol.Required("name"): str,
 })
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _set_timer_name(hass: HomeAssistant, connection, msg: dict) -> None:
     await _device_command(hass, connection, msg, "set_timer_name")
@@ -93,13 +99,13 @@ async def _set_timer_name(hass: HomeAssistant, connection, msg: dict) -> None:
     vol.Required("entry_id"): str,
     vol.Required("enabled"): bool,
 })
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _set_timers_enabled(hass: HomeAssistant, connection, msg: dict) -> None:
     await _device_command(hass, connection, msg, "set_timers_enabled")
 
 
 async def _device_command(hass: HomeAssistant, connection, msg: dict, action: str) -> None:
+    _require_schedule_access(connection)
     coordinator = hass.data[DOMAIN].get(msg["entry_id"])
     if coordinator is None:
         connection.send_error(
